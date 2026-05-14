@@ -1,0 +1,40 @@
+#!/bin/bash
+
+max_score=${1:-100} [cite: 13, 14]
+max_student_id=${2:-5} [cite: 15, 17]
+output_csv="output.csv" [cite: 41]
+echo "student_id,score" > "$output_csv" [cite: 41]
+
+tmp=$(mktemp -d) [cite: 38]
+
+for i in $(seq 1 "$max_student_id"); do [cite: 16]
+    id="180512$i" [cite: 16]
+    script="Submissions/$id/$id.sh" [cite: 8, 9]
+    score=0
+
+    if [ -f "$script" ]; then [cite: 33]
+        (cd "Submissions/$id" && bash "./$id.sh") > "$tmp/$id.txt" 2>/dev/null [cite: 18, 19]
+        diffs=$(diff -w "$tmp/$id.txt" "AcceptedOutput.txt" | grep -c '[<>]') [cite: 20, 21, 22]
+        score=$(( max_score - (diffs * 5) )) [cite: 30, 31]
+        [ $score -lt 0 ] && score=0 [cite: 32]
+    fi
+    eval "s$id=$score"
+done
+
+for i in $(seq 1 "$max_student_id"); do [cite: 16]
+    id_i="180512$i"
+    final_score=$(eval echo "\$s$id_i")
+    
+    for j in $(seq 1 "$max_student_id"); do [cite: 16]
+        id_j="180512$j"
+        if [ "$id_i" != "$id_j" ] && [ -f "Submissions/$id_i/$id_i.sh" ] && [ -f "Submissions/$id_j/$id_j.sh" ]; then
+            if diff -ZB "Submissions/$id_i/$id_i.sh" "Submissions/$id_j/$id_j.sh" >/dev/null; then [cite: 36, 37]
+                final_score=$(( -final_score )) [cite: 34, 35]
+                break
+            fi
+        fi
+    done
+    echo "$id_i,$final_score" >> "$output_csv" [cite: 41]
+done
+
+rm -rf "$tmp" [cite: 38]
